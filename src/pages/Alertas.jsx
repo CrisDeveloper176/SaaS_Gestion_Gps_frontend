@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getAlerts } from '../api/axios';
-import { Bell, RefreshCw, AlertTriangle, AlertCircle, Info } from 'lucide-react';
+import { getAlerts, markAlertAsRead } from '../api/axios';
+import { Bell, RefreshCw, AlertTriangle, AlertCircle, Info, CheckCircle } from 'lucide-react';
 
 export default function Alertas() {
   const [alerts, setAlerts] = useState([]);
@@ -21,6 +21,15 @@ export default function Alertas() {
   useEffect(() => {
     fetchAlerts();
   }, []);
+
+  const handleMarkAsRead = async (id) => {
+    try {
+      await markAlertAsRead(id);
+      fetchAlerts(); // recargar la lista
+    } catch (err) {
+      console.error('Error marking as read:', err);
+    }
+  };
 
   const getSeverityColor = (severity) => {
     switch(severity) {
@@ -66,24 +75,25 @@ export default function Alertas() {
               <th style={{ padding: '16px 24px', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13 }}>Regla / Severidad</th>
               <th style={{ padding: '16px 24px', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13 }}>Mensaje</th>
               <th style={{ padding: '16px 24px', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13 }}>Fecha y Hora</th>
+              <th style={{ padding: '16px 24px', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13, textAlign: 'right' }}>Acción</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="4" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <td colSpan="5" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
                   Cargando alertas...
                 </td>
               </tr>
             ) : alerts.length === 0 ? (
               <tr>
-                <td colSpan="4" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <td colSpan="5" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
                   No hay alertas registradas
                 </td>
               </tr>
             ) : (
               alerts.map(a => (
-                <tr key={a.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                <tr key={a.id} style={{ borderBottom: '1px solid var(--border-light)', opacity: a.is_read ? 0.6 : 1 }}>
                   <td style={{ padding: '16px 24px', fontWeight: 600, fontFamily: 'monospace', color: 'var(--accent-primary)' }}>
                     {a.vehicle_plate}
                   </td>
@@ -100,6 +110,20 @@ export default function Alertas() {
                   </td>
                   <td style={{ padding: '16px 24px', color: 'var(--text-muted)', fontSize: 13 }}>
                     {new Date(a.timestamp).toLocaleString()}
+                  </td>
+                  <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                    {!a.is_read ? (
+                      <button 
+                        onClick={() => handleMarkAsRead(a.id)}
+                        style={{ background: 'transparent', border: 'none', color: 'var(--accent-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, marginLeft: 'auto' }}
+                      >
+                        <CheckCircle size={16} /> Marcar Leída
+                      </button>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
+                        <CheckCircle size={16} /> Leída
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))

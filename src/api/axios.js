@@ -56,12 +56,35 @@ api.interceptors.response.use(
 // Helpers de API Críticos
 export const loginRequest = (username, password) => 
   axios.post(`${API_URL}/auth/login/`, { username, password });
+export const registerTenant = (data) => axios.post(`${API_URL}/auth/register/`, data);
+export const requestPasswordReset = (data) => axios.post(`${API_URL}/auth/password/reset/`, data);
+export const confirmPasswordReset = (data) => axios.post(`${API_URL}/auth/password/confirm/`, data);
 
-// Endpoints Auxiliares
+// --- VEHÍCULOS ---
 export const getVehicles = (params) => api.get('/fleet/vehicles/', { params });
+export const createVehicle = (data) => api.post('/fleet/vehicles/', data);
+export const updateVehicle = (id, data) => api.put(`/fleet/vehicles/${id}/`, data);
+export const deleteVehicle = (id) => api.delete(`/fleet/vehicles/${id}/`);
+export const unassignDriverFromVehicle = (id) => api.post(`/fleet/vehicles/${id}/unassign-driver/`);
 export const getVehicleStatus = (id) => api.get(`/fleet/vehicles/${id}/status/`);
+
+// --- CONDUCTORES ---
 export const getDrivers = (params) => api.get('/fleet/drivers/', { params });
-export const getAlerts = (params) => api.get('/alerts/alert-events/', { params });
+export const createDriver = (data) => api.post('/fleet/drivers/', data);
+export const updateDriver = (id, data) => api.put(`/fleet/drivers/${id}/`, data);
+export const deleteDriver = (id) => api.delete(`/fleet/drivers/${id}/`);
+export const assignDriver = (id, vehicle_id) => api.post(`/fleet/drivers/${id}/assign/`, { vehicle_id });
+
+// --- ALERTAS (Reglas y Eventos) ---
+export const getAlertRules = (params) => api.get('/alerts/rules/', { params });
+export const createAlertRule = (data) => api.post('/alerts/rules/', data);
+export const updateAlertRule = (id, data) => api.put(`/alerts/rules/${id}/`, data);
+export const deleteAlertRule = (id) => api.delete(`/alerts/rules/${id}/`);
+
+export const getAlerts = (params) => api.get('/alerts/', { params });
+export const markAlertAsRead = (id) => api.patch(`/alerts/${id}/`, { is_read: true });
+
+// --- OTROS ---
 export const getTrips = (params) => api.get('/trips/', { params });
 export const getAnalyticsSummary = () => api.get('/analytics/summary/');
 

@@ -1,11 +1,20 @@
 import { useState, useEffect } from 'react';
-import { getVehicles } from '../api/axios';
-import { Car, Search, RefreshCw } from 'lucide-react';
+import { getVehicles, createVehicle, updateVehicle, deleteVehicle, assignDriver, unassignDriverFromVehicle } from '../api/axios';
+import { Car, Search, RefreshCw, Plus, Edit2, Trash2, UserPlus, UserMinus } from 'lucide-react';
+import toast from 'react-hot-toast';
+import VehicleModal from '../components/VehicleModal';
+import AssignDriverToVehicleModal from '../components/AssignDriverToVehicleModal';
 
 export default function Vehiculos() {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchVehicles = async () => {
     setLoading(true);
@@ -27,6 +36,77 @@ export default function Vehiculos() {
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm]);
 
+  const handleOpenModal = (vehicle = null) => {
+    setSelectedVehicle(vehicle);
+    setModalOpen(true);
+  };
+
+  const handleOpenAssignModal = (vehicle) => {
+    setSelectedVehicle(vehicle);
+    setAssignModalOpen(true);
+  };
+
+  const handleFormSubmit = async (data) => {
+    setIsSubmitting(true);
+    try {
+      if (selectedVehicle) {
+        await updateVehicle(selectedVehicle.id, data);
+        toast.success('Vehículo actualizado correctamente');
+      } else {
+        await createVehicle(data);
+        toast.success('Vehículo registrado correctamente');
+      }
+      setModalOpen(false);
+      fetchVehicles();
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.detail || 'Error al guardar el vehículo');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (id, plate) => {
+    if (window.confirm(`¿Estás seguro de que deseas eliminar el vehículo ${plate}?`)) {
+      try {
+        await deleteVehicle(id);
+        toast.success('Vehículo eliminado');
+        fetchVehicles();
+      } catch (err) {
+        console.error(err);
+        toast.error('Error al eliminar el vehículo');
+      }
+    }
+  };
+
+  const handleAssignSubmit = async (driverId, vehicleId) => {
+    setIsSubmitting(true);
+    try {
+      await assignDriver(driverId, vehicleId);
+      toast.success('Conductor asignado al vehículo correctamente');
+      setAssignModalOpen(false);
+      fetchVehicles();
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.error || 'Error al asignar el conductor');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUnassign = async (id, plate) => {
+    if (window.confirm(`¿Estás seguro de desvincular al conductor actual del vehículo ${plate}?`)) {
+      try {
+        await unassignDriverFromVehicle(id);
+        toast.success('Conductor desvinculado exitosamente');
+        fetchVehicles();
+      } catch (err) {
+        console.error(err);
+        toast.error('Error al desvincular conductor');
+      }
+    }
+  };
+
   return (
     <div className="animate-fade-in">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
@@ -39,18 +119,24 @@ export default function Vehiculos() {
             Gestiona los vehículos de la organización
           </p>
         </div>
-        <button onClick={fetchVehicles} className="btn btn-primary" disabled={loading}>
-          <RefreshCw size={16} className={loading ? 'animate-pulse' : ''} />
-          Recargar
-        </button>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button onClick={fetchVehicles} className="btn btn-secondary" disabled={loading} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-light)', color: 'white', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <RefreshCw size={16} className={loading ? 'animate-pulse' : ''} />
+            Recargar
+          </button>
+          <button onClick={() => handleOpenModal()} className="btn btn-primary" style={{ background: 'var(--accent-primary)', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 500 }}>
+            <Plus size={16} />
+            Nuevo Vehículo
+          </button>
+        </div>
       </div>
 
       <div className="glass-card" style={{ marginBottom: 24, padding: '16px 24px', display: 'flex', gap: 16 }}>
         <div style={{ position: 'relative', flex: 1 }}>
           <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: 16, top: 13 }} />
-          <input 
-            type="text" 
-            placeholder="Buscar por patente o alias..." 
+          <input
+            type="text"
+            placeholder="Buscar por patente o alias..."
             className="form-control"
             style={{ paddingLeft: 44 }}
             value={searchTerm}
@@ -65,20 +151,22 @@ export default function Vehiculos() {
             <tr style={{ background: 'var(--bg-surface-hover)', borderBottom: '1px solid var(--border-light)' }}>
               <th style={{ padding: '16px 24px', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13 }}>Patente</th>
               <th style={{ padding: '16px 24px', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13 }}>Alias</th>
+              <th style={{ padding: '16px 24px', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13 }}>Conductor</th>
               <th style={{ padding: '16px 24px', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13 }}>Status</th>
               <th style={{ padding: '16px 24px', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13 }}>Device ID</th>
+              <th style={{ padding: '16px 24px', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13, textAlign: 'right' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="4" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
                   Cargando vehículos...
                 </td>
               </tr>
             ) : vehicles.length === 0 ? (
               <tr>
-                <td colSpan="4" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
                   No se encontraron vehículos
                 </td>
               </tr>
@@ -87,6 +175,16 @@ export default function Vehiculos() {
                 <tr key={v.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
                   <td style={{ padding: '16px 24px', fontWeight: 600 }}>{v.plate}</td>
                   <td style={{ padding: '16px 24px', color: 'var(--text-secondary)' }}>{v.alias || '---'}</td>
+                  <td style={{ padding: '16px 24px', color: 'var(--text-primary)', fontWeight: 500 }}>
+                    {v.current_driver_name ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: 6, fontSize: 13 }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-secondary)' }}></div>
+                        {v.current_driver_name}
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>Sin asignar</span>
+                    )}
+                  </td>
                   <td style={{ padding: '16px 24px' }}>
                     <span style={{
                       padding: '4px 10px', borderRadius: '99px', fontSize: 12, fontWeight: 600,
@@ -99,12 +197,45 @@ export default function Vehiculos() {
                   <td style={{ padding: '16px 24px', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
                     {v.device_id}
                   </td>
+                  <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                    {v.current_driver_name ? (
+                      <button onClick={() => handleUnassign(v.id, v.plate)} style={{ background: 'transparent', border: 'none', color: '#f59e0b', cursor: 'pointer', marginRight: 12, padding: 4 }} title="Desvincular Conductor">
+                        <UserMinus size={16} />
+                      </button>
+                    ) : (
+                      <button onClick={() => handleOpenAssignModal(v)} style={{ background: 'transparent', border: 'none', color: 'var(--accent-secondary)', cursor: 'pointer', marginRight: 12, padding: 4 }} title="Asignar Conductor">
+                        <UserPlus size={16} />
+                      </button>
+                    )}
+                    <button onClick={() => handleOpenModal(v)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', marginRight: 12, padding: 4 }} title="Editar">
+                      <Edit2 size={16} />
+                    </button>
+                    <button onClick={() => handleDelete(v.id, v.plate)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 4 }} title="Eliminar">
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
+
+      <VehicleModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        vehicle={selectedVehicle}
+        onSubmit={handleFormSubmit}
+        isSubmitting={isSubmitting}
+      />
+
+      <AssignDriverToVehicleModal
+        open={assignModalOpen}
+        onOpenChange={setAssignModalOpen}
+        vehicle={selectedVehicle}
+        onSubmit={handleAssignSubmit}
+        isSubmitting={isSubmitting}
+      />
     </div>
   );
 }

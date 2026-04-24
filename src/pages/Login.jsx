@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Truck, LogIn, AlertCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 export default function Login() {
   const { login } = useAuth();
@@ -88,6 +88,15 @@ export default function Login() {
             <LogIn size={18} />
             {loading ? 'Ingresando...' : 'Iniciar Sesión'}
           </button>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16, fontSize: 13 }}>
+            <Link to="/recuperar-password" style={{ color: 'var(--text-secondary)', textDecoration: 'none' }}>
+              ¿Olvidaste tu contraseña?
+            </Link>
+            <Link to="/registro" style={{ color: 'var(--accent-primary)', textDecoration: 'none', fontWeight: 500 }}>
+              Crear Organización
+            </Link>
+          </div>
         </form>
       </div>
     </div>
