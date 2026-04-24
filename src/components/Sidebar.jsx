@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Truck, Users, Map, Bell, Settings } from 'lucide-react';
+import { LayoutDashboard, Truck, Users, Map, Bell, Settings, ShieldAlert, MapPin, Route } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Sidebar() {
@@ -54,6 +54,8 @@ export default function Sidebar() {
         <NavItem to="/vehiculos" icon={<Truck size={18} />} label="Flota (Vehículos)" />
         <NavItem to="/conductores" icon={<Users size={18} />} label="Conductores" />
         <NavItem to="/alertas" icon={<Bell size={18} />} label="Alertas" />
+        <NavItem to="/geocercas" icon={<MapPin size={18} />} label="Geocercas" />
+        <NavItem to="/historial-rutas" icon={<Route size={18} />} label="Historial Rutas" />
         
         {isAdmin && (
           <>
@@ -62,6 +64,7 @@ export default function Sidebar() {
               letterSpacing: '0.1em', color: 'var(--text-muted)',
               marginTop: 30, marginBottom: 12, paddingLeft: 12
             }}>Administración</div>
+            <NavItem to="/configuracion-alertas" icon={<ShieldAlert size={18} />} label="Reglas de Alertas" />
             <NavItem to="/configuracion" icon={<Settings size={18} />} label="Ajustes de Tenant" />
           </>
         )}

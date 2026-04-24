@@ -84,8 +84,16 @@ export const deleteAlertRule = (id) => api.delete(`/alerts/rules/${id}/`);
 export const getAlerts = (params) => api.get('/alerts/', { params });
 export const markAlertAsRead = (id) => api.patch(`/alerts/${id}/`, { is_read: true });
 
-// --- OTROS ---
-export const getTrips = (params) => api.get('/trips/', { params });
+// --- GEOCERCAS ---
+export const getGeofences = (params) => api.get('/geofences/', { params });
+export const createGeofence = (data) => api.post('/geofences/', data);
+export const updateGeofence = (id, data) => api.put(`/geofences/${id}/`, data);
+export const deleteGeofence = (id) => api.delete(`/geofences/${id}/`);
+
+// --- VIAJES E HISTORIAL GPS ---
+export const getTrips = (params) => api.get('/gps/trips/', { params });
+export const getTripDetail = (id) => api.get(`/gps/trips/${id}/`);
+export const getGpsHistory = (params) => api.get('/gps/history/', { params });
 export const getAnalyticsSummary = () => api.get('/analytics/summary/');
 
 export default api;
