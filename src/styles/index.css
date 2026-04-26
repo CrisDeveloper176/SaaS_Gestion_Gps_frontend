@@ -6,30 +6,35 @@
   --bg-secondary: #12121a;
   --bg-surface: rgba(25, 25, 35, 0.6);
   --bg-surface-hover: rgba(35, 35, 50, 0.8);
-  
+
   --accent-primary: #6366f1; /* Indigo */
   --accent-primary-glow: rgba(99, 102, 241, 0.3);
   --accent-secondary: #10b981; /* Emerald */
   --accent-secondary-glow: rgba(16, 185, 129, 0.3);
-  
+
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --text-muted: #475569;
-  
+
   --border-light: rgba(255, 255, 255, 0.08);
   --border-focus: rgba(99, 102, 241, 0.5);
-  
+
+  /* Semantic color tokens */
+  --danger: #ef4444;
+  --danger-glow: rgba(239, 68, 68, 0.3);
+  --warning: #f59e0b;
+
   --sidebar-width: 280px;
   --navbar-height: 70px;
-  
+
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 20px;
-  
+
   --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
   --shadow-glow: 0 0 20px var(--accent-primary-glow);
-  
+
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -59,7 +64,7 @@ a {
   color: inherit;
 }
 
-/* Glassmorphism Utilities */
+/* ── Glassmorphism Utilities ─────────────────────────────────────────────── */
 .glass {
   background: var(--bg-surface);
   backdrop-filter: blur(12px);
@@ -77,19 +82,24 @@ a {
   transition: var(--transition);
 }
 
-.glass-card:hover {
+/**
+ * Hover lift only applies to standalone stat/metric cards (.stat-card).
+ * Intentionally NOT applied to .glass-card by default to avoid disorienting
+ * lift animations on tables, form panels, and map containers.
+ */
+.stat-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), var(--shadow-glow);
   border-color: var(--border-focus);
 }
 
-/* Scrollbar */
+/* ── Scrollbar ──────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-primary); }
 ::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent-primary); }
 
-/* Layout */
+/* ── Layout ─────────────────────────────────────────────────────────────── */
 .app-layout {
   display: flex;
   min-height: 100vh;
@@ -112,17 +122,38 @@ a {
   width: 100%;
 }
 
-/* Animations */
+/* ── Animations ─────────────────────────────────────────────────────────── */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in {
   animation: fadeIn 0.4s ease forwards;
 }
 
-/* Buttons */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Auth loading spinner — used in AuthContext loading state */
+.auth-spinner {
+  width: 44px;
+  height: 44px;
+  border: 3px solid var(--border-light);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+/* Grid utility — apply to grid containers that should stack on mobile.
+   Replaces the fragile [style*="gridTemplateColumns"] attribute selector. */
+.grid-responsive {
+  display: grid;
+  gap: 24px;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -150,7 +181,26 @@ a {
   box-shadow: 0 0 30px var(--accent-primary-glow);
 }
 
-/* Forms */
+/* ── Navbar logout button ───────────────────────────────────────────────── */
+.navbar-logout-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.navbar-logout-btn:hover {
+  color: var(--danger);
+  background: var(--danger-glow);
+}
+
+/* ── Forms ──────────────────────────────────────────────────────────────── */
 .form-group {
   margin-bottom: 20px;
 }
@@ -184,15 +234,16 @@ a {
   outline: none;
 }
 
-/* Login Page Specific */
+/* ── Login Page ─────────────────────────────────────────────────────────── */
 .login-wrapper {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at top left, rgba(99, 102, 241, 0.15), transparent 40%),
-              radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.1), transparent 40%),
-              var(--bg-primary);
+  background:
+    radial-gradient(circle at top left,    rgba(99, 102, 241, 0.15), transparent 40%),
+    radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.1),  transparent 40%),
+    var(--bg-primary);
   padding: 20px;
 }
 
@@ -212,4 +263,40 @@ a {
   background: linear-gradient(135deg, #fff, #94a3b8);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* ── Responsive — Mobile / Tablet ───────────────────────────────────────── */
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 0px; /* Sidebar hidden on mobile */
+  }
+
+  .main-content {
+    margin-left: 0;
+  }
+
+  .page-container {
+    padding: 16px;
+  }
+
+  /* Stack .grid-responsive containers on mobile.
+     Add className="grid-responsive" to grid elements that need to stack vertically. */
+  .grid-responsive {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Sidebar is hidden — positioned off-screen */
+  aside {
+    display: none;
+  }
+
+  header {
+    left: 0 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 24px;
+  }
 }

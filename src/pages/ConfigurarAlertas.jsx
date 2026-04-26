@@ -88,12 +88,16 @@ export default function ConfigurarAlertas() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      const threshold = parseFloat(formData.threshold);
       const payload = {
         ...formData,
-        vehicle: formData.vehicle_id ? parseInt(formData.vehicle_id) : null,
-        threshold: (formData.alert_type !== 'OFF_HOURS_USAGE' && formData.alert_type !== 'GEOFENCE_EXIT') ? parseFloat(formData.threshold) : null,
+        vehicle: formData.vehicle_id ? parseInt(formData.vehicle_id, 10) : null,
+        threshold:
+          formData.alert_type !== 'OFF_HOURS_USAGE' && formData.alert_type !== 'GEOFENCE_EXIT'
+            ? isNaN(threshold) ? null : threshold
+            : null,
         schedule_start: formData.alert_type === 'OFF_HOURS_USAGE' ? formData.schedule_start : null,
-        schedule_end: formData.alert_type === 'OFF_HOURS_USAGE' ? formData.schedule_end : null
+        schedule_end:   formData.alert_type === 'OFF_HOURS_USAGE' ? formData.schedule_end   : null,
       };
       
       if (editingRule) {
@@ -272,8 +276,8 @@ export default function ConfigurarAlertas() {
                   </td>
                   <td style={{ padding: '16px 24px', color: 'var(--text-secondary)' }}>
                     {r.vehicle ? (() => {
-                       const v = vehicles.find(v => v.id === r.vehicle);
-                       return v ? v.plate : `ID: ${r.vehicle}`;
+                       const foundVehicle = vehicles.find((veh) => veh.id === r.vehicle);
+                       return foundVehicle ? foundVehicle.plate : `ID: ${r.vehicle}`;
                     })() : 'Toda la flota'}
                   </td>
                   <td style={{ padding: '16px 24px', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>

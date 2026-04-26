@@ -4,24 +4,24 @@ import { Route as RouteIcon, Search, Navigation, Clock, Gauge, MapPin } from 'lu
 import { MapContainer, TileLayer, Polyline, Marker, Popup, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import '../utils/leafletFix'; // Shared Leaflet default icon patch
 
-// Fix leaflet icons
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
-
+// Colored marker icons via unpkg (reliable CDN, not GitHub raw which is rate-limited)
 const startIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+  iconUrl:      'https://unpkg.com/leaflet-color-markers@1.0.0/img/marker-icon-green.png',
+  shadowUrl:    'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize:     [25, 41],
+  iconAnchor:   [12, 41],
+  popupAnchor:  [1, -34],
+  shadowSize:   [41, 41],
 });
 const endIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+  iconUrl:      'https://unpkg.com/leaflet-color-markers@1.0.0/img/marker-icon-red.png',
+  shadowUrl:    'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize:     [25, 41],
+  iconAnchor:   [12, 41],
+  popupAnchor:  [1, -34],
+  shadowSize:   [41, 41],
 });
 
 function formatDuration(isoDuration) {
@@ -40,6 +40,17 @@ function formatDistance(meters) {
   if (!meters) return '--';
   if (meters >= 1000) return `${(meters / 1000).toFixed(1)} km`;
   return `${Math.round(meters)} m`;
+}
+
+/**
+ * Returns at most `maxPoints` evenly-distributed samples from an array.
+ * Prevents rendering thousands of <CircleMarker> elements for long trips,
+ * which would freeze the browser. The polyline uses the full set for accuracy.
+ */
+function samplePoints(points, maxPoints = 500) {
+  if (points.length <= maxPoints) return points;
+  const step = Math.ceil(points.length / maxPoints);
+  return points.filter((_, i) => i % step === 0);
 }
 
 export default function HistorialRutas() {
@@ -253,8 +264,8 @@ export default function HistorialRutas() {
                       />
                     )}
 
-                    {/* Speed-colored dots along the route */}
-                    {tripPoints.map((p, i) => (
+                    {/* Speed-colored dots — sampled to max 500 points for performance */}
+                    {samplePoints(tripPoints).map((p, i) => (
                       <CircleMarker
                         key={i}
                         center={[p.lat, p.lng]}

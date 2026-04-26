@@ -4,6 +4,8 @@ import { Car, Search, RefreshCw, Plus, Edit2, Trash2, UserPlus, UserMinus } from
 import toast from 'react-hot-toast';
 import VehicleModal from '../components/VehicleModal';
 import AssignDriverToVehicleModal from '../components/AssignDriverToVehicleModal';
+import ConfirmModal from '../components/ConfirmModal';
+import Pagination from '../components/Pagination';
 
 export default function Vehiculos() {
   const [vehicles, setVehicles] = useState([]);
@@ -16,25 +18,43 @@ export default function Vehiculos() {
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchVehicles = async () => {
+  // Confirmation modal state
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState({ title: '', message: '', onConfirm: () => {} });
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasNext, setHasNext] = useState(false);
+  const [hasPrev, setHasPrev] = useState(false);
+
+  const fetchVehicles = async (p = page) => {
     setLoading(true);
     try {
-      const { data } = await getVehicles({ search: searchTerm });
-      // Django REST Framework pagination returns { count, next, previous, results }
+      const { data } = await getVehicles({ search: searchTerm, page: p });
       setVehicles(data.results || []);
+      setTotalCount(data.count ?? 0);
+      setHasNext(!!data.next);
+      setHasPrev(!!data.previous);
     } catch (err) {
       console.error('Error fetching vehicles:', err);
+      toast.error('Error al cargar los vehículos. Verifica tu conexión.');
     } finally {
       setLoading(false);
     }
   };
 
+  // Reset to page 1 when search term changes
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      fetchVehicles();
-    }, 500);
+    setPage(1);
+    const delayDebounceFn = setTimeout(() => fetchVehicles(1), 500);
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm]);
+
+  // Fetch when page changes (not triggered by search effect above)
+  useEffect(() => {
+    fetchVehicles(page);
+  }, [page]);
 
   const handleOpenModal = (vehicle = null) => {
     setSelectedVehicle(vehicle);
@@ -57,7 +77,7 @@ export default function Vehiculos() {
         toast.success('Vehículo registrado correctamente');
       }
       setModalOpen(false);
-      fetchVehicles();
+      fetchVehicles(page);
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.detail || 'Error al guardar el vehículo');
@@ -66,17 +86,23 @@ export default function Vehiculos() {
     }
   };
 
-  const handleDelete = async (id, plate) => {
-    if (window.confirm(`¿Estás seguro de que deseas eliminar el vehículo ${plate}?`)) {
-      try {
-        await deleteVehicle(id);
-        toast.success('Vehículo eliminado');
-        fetchVehicles();
-      } catch (err) {
-        console.error(err);
-        toast.error('Error al eliminar el vehículo');
-      }
-    }
+  const handleDelete = (id, plate) => {
+    setConfirmConfig({
+      title: 'Eliminar Vehículo',
+      message: `¿Estás seguro de que deseas eliminar el vehículo ${plate}? Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+      onConfirm: async () => {
+        try {
+          await deleteVehicle(id);
+          toast.success('Vehículo eliminado');
+          fetchVehicles(page);
+        } catch (err) {
+          console.error(err);
+          toast.error('Error al eliminar el vehículo');
+        }
+      },
+    });
+    setConfirmOpen(true);
   };
 
   const handleAssignSubmit = async (driverId, vehicleId) => {
@@ -85,7 +111,7 @@ export default function Vehiculos() {
       await assignDriver(driverId, vehicleId);
       toast.success('Conductor asignado al vehículo correctamente');
       setAssignModalOpen(false);
-      fetchVehicles();
+      fetchVehicles(page);
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.error || 'Error al asignar el conductor');
@@ -94,17 +120,23 @@ export default function Vehiculos() {
     }
   };
 
-  const handleUnassign = async (id, plate) => {
-    if (window.confirm(`¿Estás seguro de desvincular al conductor actual del vehículo ${plate}?`)) {
-      try {
-        await unassignDriverFromVehicle(id);
-        toast.success('Conductor desvinculado exitosamente');
-        fetchVehicles();
-      } catch (err) {
-        console.error(err);
-        toast.error('Error al desvincular conductor');
-      }
-    }
+  const handleUnassign = (id, plate) => {
+    setConfirmConfig({
+      title: 'Desvincular Conductor',
+      message: `¿Estás seguro de desvincular al conductor actual del vehículo ${plate}?`,
+      confirmLabel: 'Desvincular',
+      onConfirm: async () => {
+        try {
+          await unassignDriverFromVehicle(id);
+          toast.success('Conductor desvinculado exitosamente');
+          fetchVehicles(page);
+        } catch (err) {
+          console.error(err);
+          toast.error('Error al desvincular conductor');
+        }
+      },
+    });
+    setConfirmOpen(true);
   };
 
   return (
@@ -120,7 +152,7 @@ export default function Vehiculos() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
-          <button onClick={fetchVehicles} className="btn btn-secondary" disabled={loading} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-light)', color: 'white', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button onClick={() => fetchVehicles(page)} className="btn btn-secondary" disabled={loading} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-light)', color: 'white', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <RefreshCw size={16} className={loading ? 'animate-pulse' : ''} />
             Recargar
           </button>
@@ -171,14 +203,14 @@ export default function Vehiculos() {
                 </td>
               </tr>
             ) : (
-              vehicles.map(v => (
+              vehicles.map((v) => (
                 <tr key={v.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
                   <td style={{ padding: '16px 24px', fontWeight: 600 }}>{v.plate}</td>
                   <td style={{ padding: '16px 24px', color: 'var(--text-secondary)' }}>{v.alias || '---'}</td>
                   <td style={{ padding: '16px 24px', color: 'var(--text-primary)', fontWeight: 500 }}>
                     {v.current_driver_name ? (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: 6, fontSize: 13 }}>
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-secondary)' }}></div>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-secondary)' }} />
                         {v.current_driver_name}
                       </span>
                     ) : (
@@ -189,9 +221,9 @@ export default function Vehiculos() {
                     <span style={{
                       padding: '4px 10px', borderRadius: '99px', fontSize: 12, fontWeight: 600,
                       background: v.status === 'active' ? 'var(--accent-secondary-glow)' : 'rgba(239, 68, 68, 0.15)',
-                      color: v.status === 'active' ? 'var(--accent-secondary)' : '#ef4444'
+                      color: v.status === 'active' ? 'var(--accent-secondary)' : '#ef4444',
                     }}>
-                      {v.status.toUpperCase()}
+                      {v.status?.toUpperCase() ?? 'UNKNOWN'}
                     </span>
                   </td>
                   <td style={{ padding: '16px 24px', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
@@ -219,6 +251,16 @@ export default function Vehiculos() {
             )}
           </tbody>
         </table>
+
+        <Pagination
+          count={totalCount}
+          page={page}
+          hasNext={hasNext}
+          hasPrev={hasPrev}
+          loading={loading}
+          onNext={() => setPage((p) => p + 1)}
+          onPrev={() => setPage((p) => p - 1)}
+        />
       </div>
 
       <VehicleModal
@@ -235,6 +277,15 @@ export default function Vehiculos() {
         vehicle={selectedVehicle}
         onSubmit={handleAssignSubmit}
         isSubmitting={isSubmitting}
+      />
+
+      <ConfirmModal
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        confirmLabel={confirmConfig.confirmLabel}
+        onConfirm={confirmConfig.onConfirm}
       />
     </div>
   );

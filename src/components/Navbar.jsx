@@ -34,20 +34,13 @@ export default function Navbar() {
             <UserIcon size={18} color="var(--text-secondary)" />
           </div>
         </div>
-        
-        <button 
+
+        {/* Logout button — hover handled via CSS class to avoid React inline-style anti-pattern */}
+        <button
           onClick={logout}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-muted)',
-            cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '8px',
-            transition: 'var(--transition)'
-          }}
-          onMouseOver={(e) => e.currentTarget.style.color = 'var(--danger)'}
-          onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+          className="navbar-logout-btn"
+          aria-label="Cerrar sesión"
+          title="Cerrar sesión"
         >
           <LogOut size={20} />
         </button>
