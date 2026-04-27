@@ -132,6 +132,11 @@ a {
   animation: fadeIn 0.4s ease forwards;
 }
 
+/* ── Leaflet Marker Transitions ───────────────────────────────────────── */
+.leaflet-marker-icon {
+  transition: transform 0.2s linear !important;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

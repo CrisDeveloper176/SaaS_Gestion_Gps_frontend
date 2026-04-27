@@ -16,6 +16,7 @@ const createCarIcon = (status) =>
       border-radius: 50%;
       border: 3px solid white;
       box-shadow: var(--shadow-md);
+      transition: background-color 0.3s ease;
     "></div>`,
     iconSize: [20, 20],
     iconAnchor: [10, 10],
@@ -33,11 +34,20 @@ export default function GPS() {
       setVehicles((prev) => {
         const updated = { ...prev };
         data.results?.forEach((v) => {
-          // Merge API data but preserve WS-provided last_location if already present
+          // Merge API data. We only preserve the existing last_location if it's newer 
+          // than what the API just gave us (to prevent "jumping back" if a WS message 
+          // arrived just after the API response was generated).
+          const existing = prev[v.plate]?.last_location;
+          const incoming = v.last_location;
+          
+          let finalLocation = incoming;
+          if (existing && incoming && existing.timestamp > incoming.timestamp) {
+            finalLocation = existing;
+          }
+
           updated[v.plate] = {
             ...v,
-            // Prefer existing WS last_location; fall back to API's
-            last_location: prev[v.plate]?.last_location ?? v.last_location ?? null,
+            last_location: finalLocation || existing || null,
           };
         });
         return updated;
@@ -52,8 +62,13 @@ export default function GPS() {
 
     // ── Subscribe to vehicle_update messages via shared WebSocket ─────────
     const unsubscribe = subscribe('vehicle_update', (data) => {
+      console.log('📡 WS Update received:', data);
       const { plate, location } = data.data ?? {};
-      if (!plate || !location) return;
+      
+      if (!plate || !location) {
+        console.warn('📡 WS Update ignored: missing plate or location', data);
+        return;
+      }
 
       setVehicles((prev) => ({
         ...prev,
