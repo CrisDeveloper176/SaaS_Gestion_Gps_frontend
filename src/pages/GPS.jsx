@@ -5,6 +5,7 @@ import L from 'leaflet';
 import { getVehicles } from '../api/axios';
 import { useWebSocket } from '../context/WebSocketContext';
 import '../utils/leafletFix'; // Applies the Leaflet default icon patch
+import VehicleTrackingSidebar from '../components/GPS/VehicleTrackingSidebar';
 
 // Custom icon for vehicles — color reflects active/inactive status
 const createCarIcon = (status) =>
@@ -26,6 +27,30 @@ export default function GPS() {
   const { subscribe } = useWebSocket();
   const [vehicles, setVehicles] = useState({});
   const pollInterval = useRef(null);
+  const mapRef = useRef(null);
+  const [lockedVehicle, setLockedVehicle] = useState(null);
+
+  const handleVehicleClick = (vehicle) => {
+    if (mapRef.current && vehicle.last_location) {
+      setLockedVehicle(vehicle.plate);
+      mapRef.current.flyTo(
+        [vehicle.last_location.lat, vehicle.last_location.lon],
+        16, // Zoom level
+        { duration: 1.5 }
+      );
+    }
+  };
+
+  // Follow the locked vehicle when its location changes
+  const lockedLocation = lockedVehicle ? vehicles[lockedVehicle]?.last_location : null;
+  useEffect(() => {
+    if (lockedLocation && mapRef.current) {
+      mapRef.current.panTo([lockedLocation.lat, lockedLocation.lon], {
+        animate: true,
+        duration: 0.5
+      });
+    }
+  }, [lockedLocation?.lat, lockedLocation?.lon]);
 
   // ── Initial vehicle load ───────────────────────────────────────────────
   const fetchInitialLocations = async () => {
@@ -109,9 +134,38 @@ export default function GPS() {
         </p>
       </div>
 
-      <div className="glass-card" style={{ flex: 1, padding: 8, position: 'relative', zIndex: 0 }}>
-        <MapContainer center={center} zoom={11} style={{ height: '100%', width: '100%', borderRadius: '12px' }}>
-          <TileLayer
+      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+        <div className="glass-card" style={{ flex: 1, padding: 8, position: 'relative', zIndex: 0 }}>
+          {lockedVehicle && (
+            <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 1000 }}>
+              <button 
+                onClick={() => setLockedVehicle(null)}
+                style={{
+                  background: 'var(--accent-primary, #3b82f6)', 
+                  color: 'white', 
+                  border: 'none', 
+                  padding: '8px 12px', 
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontWeight: 'bold'
+                }}
+              >
+                <span>🔒 Siguiendo: {lockedVehicle}</span>
+                <span style={{ fontSize: '12px', opacity: 0.8 }}>(Click para soltar)</span>
+              </button>
+            </div>
+          )}
+          <MapContainer 
+            center={center} 
+            zoom={11} 
+            style={{ height: '100%', width: '100%', borderRadius: '12px' }}
+            ref={mapRef}
+          >
+            <TileLayer
             attribution='&copy; <a href="https://carto.com/">CARTO</a>'
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           />
@@ -127,7 +181,7 @@ export default function GPS() {
                   <div style={{ padding: 4 }}>
                     <h3 style={{ margin: '0 0 8px 0', fontSize: 14 }}>Vehículo: {v.plate}</h3>
                     <p style={{ margin: '4px 0', fontSize: 12 }}>
-                      <strong>Velocidad:</strong> {v.last_location.speed} km/h
+                      <strong>Velocidad:</strong> {v.last_location.speed != null ? Number(v.last_location.speed).toFixed(2) : 'N/A'} km/h
                     </p>
                     {v.last_location.timestamp && (
                       <p style={{ margin: '4px 0', fontSize: 12, color: '#888' }}>
@@ -139,7 +193,10 @@ export default function GPS() {
               </Marker>
             );
           })}
-        </MapContainer>
+          </MapContainer>
+        </div>
+
+        <VehicleTrackingSidebar vehicles={vehicles} onVehicleClick={handleVehicleClick} />
       </div>
     </div>
   );

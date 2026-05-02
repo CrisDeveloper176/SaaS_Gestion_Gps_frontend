@@ -5,6 +5,8 @@ import { MapContainer, TileLayer, Polyline, Marker, Popup, CircleMarker } from '
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '../utils/leafletFix'; // Shared Leaflet default icon patch
+import { useWebSocket } from '../context/WebSocketContext';
+import { toast } from 'react-hot-toast';
 
 // Colored marker icons via unpkg (reliable CDN, not GitHub raw which is rate-limited)
 const startIcon = new L.Icon({
@@ -65,6 +67,8 @@ export default function HistorialRutas() {
   const [filterVehicle, setFilterVehicle] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
+  
+  const { subscribe } = useWebSocket();
 
   const fetchTrips = async () => {
     setLoading(true);
@@ -92,14 +96,38 @@ export default function HistorialRutas() {
     }
   };
 
-  useEffect(() => { fetchVehicles(); fetchTrips(); }, []);
+  useEffect(() => { 
+    fetchVehicles(); 
+    fetchTrips(); 
+    
+    // Subscribe to trip_completed events
+    const unsubscribe = subscribe('trip_completed', (data) => {
+      console.log('📡 WS Update received:', data);
+      const payload = data.data;
+      if (payload) {
+        toast.success(`Ruta completada por el vehículo ${payload.vehicle_plate}`, {
+          duration: 5000,
+          position: 'top-right',
+        });
+        // Refetch trips to show the new one
+        fetchTrips();
+      }
+    });
+    
+    return () => {
+      unsubscribe();
+    };
+  }, [subscribe]);
 
   const handleSelectTrip = async (trip) => {
     setSelectedTrip(trip);
     setLoadingPoints(true);
     try {
-      const { data } = await getGpsHistory({ trip_id: trip.id });
-      setTripPoints(data.results || []);
+      // Pedimos un límite muy alto para traer todos los puntos y dibujar la ruta completa
+      const { data } = await getGpsHistory({ trip_id: trip.id, limit: 10000 });
+      // DRF puede devolver { results: [...] } o directamente el array si la paginación se apaga
+      const points = data.results ? data.results : (Array.isArray(data) ? data : []);
+      setTripPoints(points);
     } catch (err) {
       console.error('Error fetching trip points:', err);
       setTripPoints([]);
